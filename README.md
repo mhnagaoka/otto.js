@@ -1,4 +1,4 @@
 otto.js
 =======
 
-Rewriting mapaprecos.appspot.com to Node.JS
+Rewriting [mapapreços](http://mapaprecos.appspot.com) to node.js.
