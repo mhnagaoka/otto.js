@@ -1,0 +1,13 @@
+{
+  "name": "otto.js",
+  "description": "Rewriting mapapreços to node.js.",
+  "author": "Mauricio Nagaoka",
+  "version": "0.0.1",
+  "engine": "node >= 0.10.17",
+  "dependencies": {
+    "underscore": "~1.5.2",
+    "request": "~2.27.0",
+    "cheerio": "~0.12.2",
+    "iconv-lite": "~0.2.11"
+  }
+}
