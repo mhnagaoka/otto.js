@@ -36,22 +36,25 @@ crawler.initialize = function crawlerFetchRoot(processRoot) {
 		}
 	});	
 }
-crawler.fetchCities = function crawlerFetchCities(week, processCity) {
+crawler.fetchCities = function crawlerFetchCities(week, state, fuel, processCity) {
 	var opts = {
 		method: 'POST'
-		, uri: 'http://www.anp.gov.br/preco/prc/Resumo_Por_Municipio_Index.asp'
+		, uri: 'http://www.anp.gov.br/preco/prc/Resumo_Por_Estado_Municipio.asp'
 		, encoding: null
 		, form: {
-			'txtMunicipio': '%'
-			, 'cod_Semana': week
+			'selSemana': week + '*'
+			, 'selEstado': state.code
+			, 'selCombustivel': fuel.code
+			, 'image1': ''
 		}
 	}
 	request(opts, function processFetchCitiesResponse(error, response, body) {
 		if (!error && response.statusCode == 200) {
 			var strBody = iconv.decode(body, 'iso-8859-1');
 			var $ = cheerio.load(strBody);
-			$('select[name=selMunicipio]>option').each(function processCityOption () {
-				processCity(week, { code: $(this).attr('value')
+			$('#box td>a').each(function extractCity () {
+				var cityHref = $(this).attr('href');
+				processCity(week, state, fuel, { code: cityHref.slice(cityHref.indexOf("'") + 1, cityHref.lastIndexOf("'"))
 					, name: $(this).text().trim() });
 			});
 		}
@@ -90,16 +93,32 @@ crawler.fetchPrices = function crawlerFetchPrices(week, city, fuel, processStati
 		}
 	});
 };
-crawler.initialize(console.log);
 
-/*
-crawler.fetchCities('743', function processCity(week, city) {
-	console.log('week=' + week + ' city=' + JSON.stringify(city));
-	_.each(crawler.fuels, function fetchPricesForFuel(fuel) {
-		crawler.fetchPrices(week + '*', city.code, fuel.code, function processStation(week, city, fuel, station) {
-			console.log('week=' + week + ' city=' + city + ' fuel=' + fuel + ' station=' + JSON.stringify(station));
+crawler.initialize(initialized);
+
+function initialized(crawler) {
+	_.each(crawler.states, function iterateFuel(state) {
+		_.each(crawler.fuels, function fetchCities(fuel) {
+			crawler.fetchCities(crawler.week, state, fuel, function processCity(week, state, fuel, city) {
+				city.state = state;
+				//console.log(week + ' ' + JSON.stringify(fuel) + ' ' + JSON.stringify(city));
+				console.log(week + '* ' + city.code + ' ' + fuel.code);
+				//crawler.fetchPrices('743*', '4522*ABAETETUBA', '487*', function processStation(week, city, fuel, station) {
+				//	console.log('week=' + week + ' city=' + city + ' fuel=' + fuel + 'station=' + JSON.stringify(station));
+				//});
+				crawler.fetchPrices(week + '*', city.code, fuel.code, function processStation(week, city, fuel, station) {
+					console.log('week=' + week + ' city=' + city + ' fuel=' + fuel + 'station=' + JSON.stringify(station));
+				});
+			});
 		});
 	});
+}
+/*
+crawler.fetchCities('743'
+	, { code: 'SP*SAO@PAULO', name: 'Sao Paulo' }
+	, { code: '487*Gasolina', name: 'Gasolina' }
+	, function processCity(week, state, fuel, city) {
+		console.log('week=' + week + ' city=' + JSON.stringify(city));
 });
 */
 /*
