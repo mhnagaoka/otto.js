@@ -3,8 +3,8 @@ var _ = require('underscore')
 	, cheerio = require('cheerio')
 	, iconv = require('iconv-lite');
 var crawler = {};
-crawler.fields = ['name', 'address', 'neighborhood', 'brand', 'sellingPrice', 'cost', 'purchaseMode', 'supplier', 'date'];
-crawler.glpFields = ['name', 'address', 'neighborhood', 'distributor', 'sellingPrice', 'cost', 'purchaseMode', 'date'];
+crawler.fields = ['name', 'street', 'neighborhood', 'brand', 'sellingPrice', 'cost', 'purchaseMode', 'supplier', 'date'];
+crawler.glpFields = ['name', 'street', 'neighborhood', 'distributor', 'sellingPrice', 'cost', 'purchaseMode', 'date'];
 crawler.initialize = function crawlerFetchRoot(processRoot) {
 	var opts = {
 		method: 'GET'
@@ -85,30 +85,40 @@ crawler.fetchPrices = function crawlerFetchPrices(week, city, fuel, processStati
 			var strBody = iconv.decode(body, 'iso-8859-1');
 			var $ = cheerio.load(strBody);
 			var i = 0;
-			var station = {};
+			var station = { address: {} };
 			var fields = (fuel.code === '462*GLP') ? crawler.glpFields : crawler.fields;
 			$('#postos_nota_fiscal > div > table td').each(function processTableCell () {
 				//console.log(crawler.fields[i] + ': ' + $(this).text());
-				station[fields[i]] = $(this).text();
-				station.city = city;
+				if (fields[i] === 'street' || fields[i] === 'neighborhood') {
+					station.address[fields[i]] = $(this).text();
+				} else {
+					station[fields[i]] = $(this).text();
+				}
+				station.address.city = city;
+				station.normalizedAddress = crawler.normalizeAddress(station.address);
 				i++;
 				if (i >= fields.length) {
 					processStation(week, city, fuel, station);
 					i = 0;
-					station = {};
+					station = { address: {} };
 				}
 			});
 		}
 	});
 };
+crawler.normalizeAddress = function crawlerNormalizeAddress(address) {
+	return address.street + ', ' + address.city.name + ', ' + address.city.state.name;
+}
 
-crawler.initialize(initialized);
+crawler.initialize(populate);
 
-function initialized(crawler) {
+function populate(crawler) {
 	console.log(crawler);
 	_.each(crawler.states, function iterateFuel(state) {
+		//if (state.code != 'SP*SAO@PAULO') return;
 		_.each(crawler.fuels, function fetchCities(fuel) {
 			crawler.fetchCities(crawler.week, state, fuel, function processCity(week, state, fuel, city) {
+				//if (city.code != '9005*CACAPAVA') return;
 				//console.log(week + ' ' + JSON.stringify(fuel) + ' ' + JSON.stringify(city));
 				console.log(week.code + ' ' + city.code + ' ' + fuel.code);
 				//crawler.fetchPrices('743*', '4522*ABAETETUBA', '487*', function processStation(week, city, fuel, station) {
