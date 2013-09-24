@@ -90,9 +90,9 @@ crawler.fetchPrices = function crawlerFetchPrices(week, city, fuel, processStati
 			$('#postos_nota_fiscal > div > table td').each(function processTableCell () {
 				//console.log(crawler.fields[i] + ': ' + $(this).text());
 				if (fields[i] === 'street' || fields[i] === 'neighborhood') {
-					station.address[fields[i]] = $(this).text();
+					station.address[fields[i]] = $(this).text().trim();
 				} else {
-					station[fields[i]] = $(this).text();
+					station[fields[i]] = $(this).text().trim();
 				}
 				station.address.city = city;
 				station.normalizedAddress = crawler.normalizeAddress(station.address);
