@@ -133,7 +133,7 @@ function populate(crawler) {
 				var code = fuelDescription.match(/^[0-9]{3}/g);
 				crawler.fetchPrices(week, city, fuel, function processStation(week, city, fuel, station) {
 					//console.log('{\"week\": \"' + week.code + '\", \"city\":\"' + city.code + '\", \"fuel\": \"' + code + '\", \"station\": [' + JSON.stringify(station) + ']}');
-					var quotation = {week: week.code, city: city.code , fuel: code[0] ,station:  JSON.stringify(station) };
+					var quotation = {week: week.code, city: city.code , fuel: code[0] ,station: station };
 					quotationProvider.save(quotation,function (error, docs){
 						if(error){
 							console.log(error);
