@@ -30,6 +30,20 @@ FuelQuotationProvider.prototype.findAll = function(callback) {
     });
 };
 
+FuelQuotationProvider.prototype.findOne = function(criteria, callback) {
+    this.getCollection(function(error, quotation_collection) {
+      if( error ) callback(error)
+      else {
+        price_collection.find(criteria).toArray(function(error, results) {
+          if( error ) callback(error)
+          else callback(null, results)
+        });
+      }
+    });
+};
+
+
+
 //save new fuel price detailed
 FuelQuotationProvider.prototype.save = function(quotations, callback) {
     this.getCollection(function(error, quotation_collection) {

@@ -4,9 +4,14 @@ var _ = require('underscore')
 	, iconv = require('iconv-lite');
 
 var crawler = {};
-var FuelQuotationProvider = require('./quotationprovider').FuelQuotationProvider;
+
+var FuelQuotationProvider = require('./services/quotationprovider').FuelQuotationProvider;
+
+var SearchAddress =  require('./services/google-get-coordinates').SearchAddress;
 
 var quotationProvider= new FuelQuotationProvider('localhost', 27017);
+
+var searchAddress = new SearchAddress();
 
 crawler.fields = ['name', 'street', 'neighborhood', 'brand', 'sellingPrice', 'cost', 'purchaseMode', 'supplier', 'date'];
 crawler.glpFields = ['name', 'street', 'neighborhood', 'distributor', 'sellingPrice', 'cost', 'purchaseMode', 'date'];
@@ -120,27 +125,45 @@ crawler.initialize(populate);
 function populate(crawler) {
 	//console.log(crawler);
 	_.each(crawler.states, function iterateFuel(state) {
-		//if (state.code != 'SP*SAO@PAULO') return;
+		if (state.code != 'SP*SAO@PAULO') return;
 		_.each(crawler.fuels, function fetchCities(fuel) {
 			crawler.fetchCities(crawler.week, state, fuel, function processCity(week, state, fuel, city) {
-				//if (city.code != '9005*CACAPAVA') return;
+				if (city.code != '9668*SAO@PAULO') return;
 				//console.log(week + ' ' + JSON.stringify(fuel) + ' ' + JSON.stringify(city));
 				//console.log(week.code + ' ' + city.code + ' ' + fuel.code);
 				//crawler.fetchPrices('743*', '4522*ABAETETUBA', '487*', function processStation(week, city, fuel, station) {
 				//	console.log('week=' + week + ' city=' + city + ' fuel=' + fuel + 'station=' + JSON.stringify(station));
 				//});
 				var fuelDescription = fuel.code;
-				var code = fuelDescription.match(/^[0-9]{3}/g);
-				crawler.fetchPrices(week, city, fuel, function processStation(week, city, fuel, station) {
-					//console.log('{\"week\": \"' + week.code + '\", \"city\":\"' + city.code + '\", \"fuel\": \"' + code + '\", \"station\": [' + JSON.stringify(station) + ']}');
-					var quotation = {week: week.code, city: city.code , fuel: code[0] ,station: station };
-					quotationProvider.save(quotation,function (error, docs){
-						if(error){
-							console.log(error);
-						}
-					});
-				});
+			    var code = fuelDescription.match(/^[0-9]{3}/g);
+			    crawler.fetchPrices(week, city, fuel, function processStation(week, city, fuel, station) {
+				//console.log('{\"week\": \"' + week.code + '\", \"city\":\"' + city.code + '\", \"fuel\": \"' + code + '\", \"station\": [' + JSON.stringify(station) + ']}');
+				
+				console.log();
 
+				searchAddress.search(station.normalizedAddress,function(data){
+				    
+				    if(typeof data.results[0] == 'undefined'){
+					console.log('Address not found: ' + station.normalizedAddress);
+					return;
+				    }
+
+				    station.address.lat = data.results[0].geometry.location.lat;
+				    station.address.lng = data.results[0].geometry.location.lng;
+				    
+				    var quotation = {week: week.code, city: city.code , fuel: code[0] ,station: station };
+				    
+				    quotationProvider.save(quotation,function (error, docs){
+					if(error){
+					    
+					    console.log(error);
+					}
+				    });    
+				});
+				
+				
+			    });
+			    
 			});
 		});
 	});
