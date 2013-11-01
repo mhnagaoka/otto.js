@@ -123,7 +123,7 @@ crawler.normalizeAddress = function crawlerNormalizeAddress(address) {
 crawler.initialize(populate);
 
 function populate(crawler) {
-	//console.log(crawler);
+console.log(crawler);
 	_.each(crawler.states, function iterateFuel(state) {
 		if (state.code != 'SP*SAO@PAULO') return;
 		_.each(crawler.fuels, function fetchCities(fuel) {
@@ -134,15 +134,13 @@ function populate(crawler) {
 				//crawler.fetchPrices('743*', '4522*ABAETETUBA', '487*', function processStation(week, city, fuel, station) {
 				//	console.log('week=' + week + ' city=' + city + ' fuel=' + fuel + 'station=' + JSON.stringify(station));
 				//});
-				var fuelDescription = fuel.code;
-			    var code = fuelDescription.match(/^[0-9]{3}/g);
 			    crawler.fetchPrices(week, city, fuel, function processStation(week, city, fuel, station) {
-				//console.log('{\"week\": \"' + week.code + '\", \"city\":\"' + city.code + '\", \"fuel\": \"' + code + '\", \"station\": [' + JSON.stringify(station) + ']}');
-				
-				console.log();
+				//console.log('{\"week\": \"' + week.code + '\", \"city\":\"' + city.code + '\", \"fuel\": \"' + fuel.code + '\", \"station\": [' + JSON.stringify(station) + ']}');
 
 				searchAddress.search(station.normalizedAddress,function(data){
 				    
+					sleep(2000);
+
 				    if(typeof data.results[0] == 'undefined'){
 					console.log('Address not found: ' + station.normalizedAddress);
 					return;
@@ -151,7 +149,7 @@ function populate(crawler) {
 				    station.address.lat = data.results[0].geometry.location.lat;
 				    station.address.lng = data.results[0].geometry.location.lng;
 				    
-				    var quotation = {week: week.code, city: city.code , fuel: code[0] ,station: station };
+				    var quotation = {week: week.code, city: city.code , fuel: fuel.code ,station: station };
 				    
 				    quotationProvider.save(quotation,function (error, docs){
 					if(error){
@@ -167,6 +165,15 @@ function populate(crawler) {
 			});
 		});
 	});
+}
+
+function sleep(milliseconds) {
+	var start = new Date().getTime();
+	for (var i = 0; i < 2e7; i++) {
+		if ((new Date().getTime() - start) > milliseconds){
+		break;
+		}
+	}
 }
 /*
 crawler.fetchCities('743'

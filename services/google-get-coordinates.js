@@ -17,16 +17,20 @@ SearchAddress.prototype.search = function(address,callback){
     var args ={
 	   parameters:{address: address ,sensor:'false'}
     };
+
     
     client.methods.jsonMethod(args, function(data,response){
 
         var obj = JSON.parse(data);
+
+        console.log(address + ': ' + obj.status);
 
         callback(obj);
 
     });
 
 }
+
 
 exports.SearchAddress = SearchAddress;
 

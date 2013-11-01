@@ -11,7 +11,7 @@ FuelQuotationProvider = function(host, port) {
 
 
 FuelQuotationProvider.prototype.getCollection= function(callback) {
-  this.db.collection('quotation', function(error, quotation_collection) {
+  this.db.collection('anpcrawled', function(error, quotation_collection) {
     if( error ) callback(error);
     else callback(null, quotation_collection);
   });
