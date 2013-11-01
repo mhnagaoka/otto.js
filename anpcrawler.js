@@ -137,29 +137,14 @@ console.log(crawler);
 			    crawler.fetchPrices(week, city, fuel, function processStation(week, city, fuel, station) {
 				//console.log('{\"week\": \"' + week.code + '\", \"city\":\"' + city.code + '\", \"fuel\": \"' + fuel.code + '\", \"station\": [' + JSON.stringify(station) + ']}');
 
-				searchAddress.search(station.normalizedAddress,function(data){
-				    
-					sleep(2000);
-
-				    if(typeof data.results[0] == 'undefined'){
-					console.log('Address not found: ' + station.normalizedAddress);
-					return;
+				var quotation = {week: week.code, city: city.code , fuel: fuel.code ,station: station };
+				
+				quotationProvider.save(quotation,function (error, docs){
+				    if(error){
+					
+					console.log(error);
 				    }
-
-				    station.address.lat = data.results[0].geometry.location.lat;
-				    station.address.lng = data.results[0].geometry.location.lng;
-				    
-				    var quotation = {week: week.code, city: city.code , fuel: fuel.code ,station: station };
-				    
-				    quotationProvider.save(quotation,function (error, docs){
-					if(error){
-					    
-					    console.log(error);
-					}
-				    });    
-				});
-				
-				
+				});    
 			    });
 			    
 			});
@@ -167,14 +152,6 @@ console.log(crawler);
 	});
 }
 
-function sleep(milliseconds) {
-	var start = new Date().getTime();
-	for (var i = 0; i < 2e7; i++) {
-		if ((new Date().getTime() - start) > milliseconds){
-		break;
-		}
-	}
-}
 /*
 crawler.fetchCities('743'
 	, { code: 'SP*SAO@PAULO', name: 'Sao Paulo' }
