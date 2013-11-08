@@ -10,6 +10,7 @@
     "cheerio": "~0.12.2",
     "iconv-lite": "~0.2.11",
     "mongodb": "latest",
-    "node-rest-client": "latest"
+    "node-rest-client": "latest",
+    "mongoose": "latest"
   }
 }

@@ -5,13 +5,22 @@ var _ = require('underscore')
 
 var crawler = {};
 
-var FuelQuotationProvider = require('./services/quotationprovider').FuelQuotationProvider;
-
 var SearchAddress =  require('./services/google-get-coordinates').SearchAddress;
 
-var quotationProvider= new FuelQuotationProvider('localhost', 27017);
+var db = require('./model/db');
+
+var AnpCrawled = require("./model/schemas").AnpCrawled;
+var GeoLocalizedAddress = require("./model/schemas").GeoLocalizedAddress;
 
 var searchAddress = new SearchAddress();
+
+var callGoogle = process.env.CHECK_GOOGLE_ADDRESS;
+
+if (callGoogle != 0 && callGoogle != 1){
+
+	console.log('Set CHECK_GOOGLE_ADDRESS=0|1');
+	process.exit(1);
+}
 
 crawler.fields = ['name', 'street', 'neighborhood', 'brand', 'sellingPrice', 'cost', 'purchaseMode', 'supplier', 'date'];
 crawler.glpFields = ['name', 'street', 'neighborhood', 'distributor', 'sellingPrice', 'cost', 'purchaseMode', 'date'];
@@ -126,50 +135,117 @@ function populate(crawler) {
 console.log(crawler);
     _.each(crawler.states, function iterateFuel(state) {
 	if (state.code != 'SP*SAO@PAULO') return;
-	_.each(crawler.fuels, function fetchCities(fuel) {
-	    crawler.fetchCities(crawler.week, state, fuel, function processCity(week, state, fuel, city) {
-		if (city.code != '9668*SAO@PAULO') return;
-		//console.log(week + ' ' + JSON.stringify(fuel) + ' ' + JSON.stringify(city));
-		//console.log(week.code + ' ' + city.code + ' ' + fuel.code);
-		//crawler.fetchPrices('743*', '4522*ABAETETUBA', '487*', function processStation(week, city, fuel, station) {
-		//console.log('week=' + week + ' city=' + city + ' fuel=' + fuel + 'station=' + JSON.stringify(station));
-		//});
-		    crawler.fetchPrices(week, city, fuel, function processStation(week, city, fuel, station) {
-			//console.log('{\"week\": \"' + week.code + '\", \"city\":\"' + city.code + '\", \"fuel\": \"' + fuel.code + '\", \"station\": [' + JSON.stringify(station) + ']}');
+		_.each(crawler.fuels, function fetchCities(fuel) {
+		    crawler.fetchCities(crawler.week, state, fuel, function processCity(week, state, fuel, city) {
+			if (city.code != '9668*SAO@PAULO') return;
+			//console.log(week + ' ' + JSON.stringify(fuel) + ' ' + JSON.stringify(city));
+			//console.log(week.code + ' ' + city.code + ' ' + fuel.code);
+			//crawler.fetchPrices('743*', '4522*ABAETETUBA', '487*', function processStation(week, city, fuel, station) {
+			//console.log('week=' + week + ' city=' + city + ' fuel=' + fuel + 'station=' + JSON.stringify(station));
+			//});
+			    crawler.fetchPrices(week, city, fuel, function processStation(week, city, fuel, station) {
+				//console.log('{\"week\": \"' + week.code + '\", \"city\":\"' + city.code + '\", \"fuel\": \"' + fuel.code + '\", \"station\": [' + JSON.stringify(station) + ']}');
 
-			searchAddress.search(station.normalizedAddress,function(data){
-			        
-			    sleep(2000);
+					var anpCrawled = {week: week.code, city: city.code , fuel: fuel.code ,station: station };	
 
-			        if(typeof data.results[0] == 'undefined'){
-				    console.log('Address not found: ' + station.normalizedAddress);
-				    return;
-				        }
+					GeoLocalizedAddress.find({normalizedAddress: station.normalizedAddress}).sort({normalizedAddress: 1}).exec(function(err,addresses){
 
-			        station.address.lat = data.results[0].geometry.location.lat;
-			        station.address.lng = data.results[0].geometry.location.lng;
-			        
-			        var quotation = {week: week.code, city: city.code , fuel: fuel.code ,station: station };
-			        
-			        quotationProvider.save(quotation,function (error, docs){
-				    if(error){
-					    
-					    console.log(error);
-					}
-				        });    
-			    });
-			
-			
-			    });
-		    
+
+						if(err){
+						    console.log(err);
+						    return err;
+					  	}
+					  	if(typeof addresses != 'undefined' && addresses!=''){
+							
+							var address = addresses[0];
+
+							console.log('Address found: ' + address.normalizedAddress);
+							console.log('Address found: ' + address.coordinate);
+
+							station.address.lat = address.coordinate[0];
+						    station.address.lng = address.coordinate[1];
+     						saveAnpCrawled(anpCrawled);  
+
+					  	}else{
+					  		console.log('Address not found: ' + station.normalizedAddress);
+
+					    	if(callGoogle==1){
+						    	searchAddress.search(station.normalizedAddress,function(data){
+								     sleep(3000);
+
+							         if(typeof data.results[0] == 'undefined'){
+								 	   console.log('Address not found: ' + station.normalizedAddress);
+								  	   return;
+							         }
+
+							         station.address.lat = data.results[0].geometry.location.lat;
+							         station.address.lng = data.results[0].geometry.location.lng;
+								        
+							         saveAnpCrawled(anpCrawled);  
+
+							         saveGeolocalizedAddress(station.normalizedAddress, data.results[0].geometry.location.lat, data.results[0].geometry.location.lng)
+
+								});	
+					    	}
+
+					  	}
+			    	});
+				
+				});
+			    
+			});
 		});
-	    });
 	});
 }
 
+function saveAnpCrawled(anpCrawled){
+	console.log('Saving anpCrawled');
+    AnpCrawled.create(anpCrawled, function(err, doc) {
+	    var strOutput;
+		if (err) {
+		    console.log(err);
+		    strOutput = 'Error creating quotation';
+		} else {
+		    console.log('AnpCrawled created: ' + doc.station.normalizedAddress);
+		}
+    });
+}
+
+function saveGeolocalizedAddress(normalizedAddress, lat, lng){
+
+
+	GeoLocalizedAddress.find({normalizedAddress: normalizedAddress},function (address){
+		if(typeof address == 'undefined' || address != ''){
+
+			console.log('Saving address');
+			
+			var geoLocalizedAddress = {
+				normalizedAddress: normalizedAddress,
+				coordinate: []
+			}
+			
+			geoLocalizedAddress.coordinate.push(lat);
+			geoLocalizedAddress.coordinate.push(lng);
+
+			GeoLocalizedAddress.create(geoLocalizedAddress, function(err, doc) {
+		   	
+		   	var strOutput;
+				if (err) {
+		 		   console.log(err);
+				    strOutput = 'Error creating quotation';
+				} else {
+				    console.log('Address created: ' + doc.normalizedAddress + ' @ ' + doc.coordinate[0] + ' , ' + doc.coordinate[1]);
+				}
+		   	});
+		}
+
+	});
+
+
+}
 function sleep(milliseconds) {
     var start = new Date().getTime();
-    for (var i = 0; i < 2e7; i++) {
+    for (var i = 0; i < 3e7; i++) {
 	if ((new Date().getTime() - start) > milliseconds){
 	    break;
 	    }
