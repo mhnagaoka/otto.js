@@ -11,6 +11,7 @@
     "iconv-lite": "~0.2.11",
     "mongodb": "latest",
     "node-rest-client": "latest",
-    "mongoose": "latest"
+    "mongoose": "latest",
+    "q": "~0.9.7"
   }
 }
