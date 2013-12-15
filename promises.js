@@ -2,21 +2,22 @@ var Q = require('q');
 
 function getStates() {
     return Q.all(['sp', 'rj'].map(function (st) {
-        var d = Q.defer();
-        d.resolve(st);
-        return d.promise;
+        console.log(st);
+        return getCities(st);
     }));
 }
 
 function getCities(st) {
     if (st === 'sp') {
         return Q.all(['sao_paulo', 'campinas', 'cacapava'].map(function (ct) {
+            console.log(ct);
             var d = Q.defer();
             d.resolve(ct);
             return d.promise;
         }));
     } else if (st == 'rj') {
         return Q.all(['macae'].map(function (ct) {
+            console.log(ct);
             var d = Q.defer();
             d.resolve(ct);
             return d.promise;
@@ -27,11 +28,7 @@ function getCities(st) {
         return d.promise;
     }
 }
+
 getStates()
-.then(function (sts) {
-    return Q.all(sts.map(function (st) {
-        return getCities(st);
-    }));
-})
-.then(console.log)
-.done();
+    .then(console.log)
+    .done();
