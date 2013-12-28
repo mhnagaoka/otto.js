@@ -12,6 +12,7 @@
     "mongodb": "latest",
     "node-rest-client": "latest",
     "mongoose": "latest",
-    "q": "~0.9.7"
+    "q": "~0.9.7",
+    "ttys": "0.0.3"
   }
 }
